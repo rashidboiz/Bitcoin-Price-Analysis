@@ -1,0 +1,165 @@
+---
+title: "MTH6139 Time Series" 
+subtitle: "Coursework 1" 
+author: "Sami Rashid" 
+date: "Spring term 2025" 
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: spacelab 
+    highlight: tango
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r, echo=FALSE}
+# This code will display the QMUL logo at the top right of the page
+# Do not change this code
+htmltools::img(src = knitr::image_uri("images/QMlogo.png"),
+               alt = 'logo',
+               style = 'position:absolute; top:0; right:0; padding:10px; width:20%;')
+```
+
+------------------------------------------------------------------------
+
+# **Introduction**
+
+Bitcoin is a **cryptocurrency (virtual money)** designed to act as a
+form of money and used to make payments outside the control of a group
+or entity. Therefore, it removes the need for third-party involvement
+such as banks and is **not controlled by the government**.
+
+Being the **first-ever cryptocurrency**, it is an **extremely volatile
+financial asset** and has seen large fluctuations in price since its
+establishment in **2008**.
+
+## **Purpose of the Project**
+
+The purpose of this project is to:
+
+> ✅ **Analyse Bitcoin's historical price** and how its value has
+> changed over time.\
+> ✅ **Use Prophet forecasting** to predict the future prices of
+> Bitcoin.\
+> ✅ **Identify seasonality patterns.**\
+
+------------------------------------------------------------------------
+
+# **Prophet Model**
+
+In this section we identify *trends* and *forecast* the price of Bitcoin
+using **Prophets** forecasting tool.
+
+The dataset used in this project was obtained from **Kaggle**. It
+contains the *daily* closing price of bitcoin. You can access the
+dataset here:\
+[Bitcoin Historical Price Dataset
+(Kaggle)](https://www.kaggle.com/datasets/herculespeters/bitcoin-prices-cleaned-dataset)
+
+## **Load Bitcoin Dataset**
+
+First, we load the dataset using [`read_csv`]{style="color:purple"}.
+
+```{r message=FALSE, warning=FALSE}
+#Load dataset
+library(readr)
+BTC_USD <- read_csv("data/BTC-USD.csv")
+
+#Check dataset is loaded correctly
+head(BTC_USD)  
+```
+
+---
+
+## **Formatting the Dataset**
+
+To use the **Prophet** Model we first must:
+
+-   Convert the date column to **Prophets** date format
+    ([`ds`]{style="color:purple"})
+-   Set the price as the variable ([`y`]{style="color:purple"})
+
+```{r message=FALSE, warning=FALSE}
+#Convert dataset to Prophet format
+library(zoo)
+BitcoinData <- data.frame(
+  ds = zoo::as.yearmon(BTC_USD$Date), 
+  y = BTC_USD$Price)
+
+BitcoinData$ds <- as.Date(BitcoinData$ds)
+```
+
+---
+
+## **Visualising Bitcoin Price**
+
+Before we forecast Bitcoins price, it would be a good idea to *plot* a
+chart of the **historical** price of Bitcoin.
+
+For a clearer chart we use [`ggplot`]{style="color:purple"}
+
+```{r message=FALSE, warning=FALSE}
+#Plot Bitcoin Price History
+plot(BitcoinData$ds, BitcoinData$y, 
+     type = "l",
+     main = "Bitcoin Price History",
+     xlab = "Year", ylab = "Price (USD)")
+
+```
+
+---
+
+## **Implement the Prophet Model**
+
+The **Prophet** model will first identify any **trends or seasonality**
+from the dataset.
+
+```{r message=FALSE, warning=FALSE}
+#Check dataset for weekly and yearly seasonality
+library(prophet)
+BitcoinModel <- prophet(BitcoinData, 
+                        yearly.seasonality = TRUE, 
+                        weekly.seasonality = TRUE)
+
+#Forecast next 365 days
+FutureBitcoin <- make_future_dataframe(BitcoinModel, periods = 365, freq = "day")
+BitcoinForecast <- predict(BitcoinModel, FutureBitcoin)
+```
+
+---
+
+## **Forecasting Bitcoin Price**
+
+We can now [`plot`]{style="color:purple"} the **forecasted** price of
+Bitcoin!
+
+```{r}
+#Plot Bitcoin Forecasted model
+plot(BitcoinModel, BitcoinForecast,
+     main = "Bitcoin Price Forecast",
+     xlab = "Year", ylab = "Price (USD)")
+```
+
+The [`plot`]{style="color:purple"} shows the **historical** Bitcoin Price (black points) with the **forecasted** Bitcoin price (blue line). It also includes levels of **uncertainty** with the blue shaded area. 
+
+The forecast suggests a price will **increase** with a continuous **upward trend**
+
+--------------------------------------------------------------------------------
+
+# **Seasonality**
+
+**Prophet** can also give us insights into **weekly** and **yearly** seasonality.
+
+```{r message=FALSE, warning=FALSE}
+#Plots of Bitcoins seasonality
+prophet_plot_components(BitcoinModel, BitcoinForecast)
+```
+
+From the *weekly* seasonality we can see that **Monday** has the **highest increase** in price whereas **Tuesday** has the **highest decrease**. 
+
+Futhermore, from the *yearly* seasonality we can see a large peak during **January**. We also see big price increases around **June and December**. On the other hand, **April and October** show the largest decreases in price for the year. 
+
+--------------------------------------------------------------------------------
+
